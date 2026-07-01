@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ACOM ⇄ Flex Bridge</title>
+<style>
+  :root {
+    --bg:#0e1116; --card:#171c24; --edge:#232b37; --text:#dfe6ef; --dim:#8a97a8;
+    --gold:#f2d200; --blue:#4c86ff; --green:#38c172; --red:#e3564a; --amber:#f0a12c;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, Segoe UI, Arial, sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--edge); }
+  header h1 { font-size:16px; margin:0; letter-spacing:.4px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--red); }
+  .dot.on { background:var(--green); }
+  main { display:grid; gap:14px; padding:16px 20px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); max-width:1400px; margin:auto; }
+  .card { background:var(--card); border:1px solid var(--edge); border-radius:10px; padding:14px 16px; }
+  .card h2 { margin:0 0 10px; font-size:12px; text-transform:uppercase; letter-spacing:1.2px; color:var(--dim); }
+  .big { font-size:30px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .row { display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px dotted var(--edge); }
+  .row:last-child { border-bottom:none; }
+  .row .k { color:var(--dim); }
+  .gauges { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .gauge { background:#121722; border:1px solid var(--edge); border-radius:8px; padding:8px 10px; }
+  .gauge .v { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .gauge .l { color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+  .bar { height:6px; background:#0a0e14; border-radius:3px; margin-top:6px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:var(--blue); width:0%; transition:width .2s; }
+  .bar.warn i { background:var(--amber); } .bar.bad i { background:var(--red); }
+  #tuneState { padding:10px 12px; border-radius:8px; background:#121722; text-align:center; font-weight:600; }
+  #tuneState.active { background:#3a2f05; color:var(--gold); animation:pulse 1s infinite alternate; }
+  @keyframes pulse { from{opacity:.75} to{opacity:1} }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { padding:4px 6px; text-align:left; border-bottom:1px solid var(--edge); }
+  th { color:var(--dim); font-weight:500; }
+  .ok { color:var(--green); } .bad { color:var(--red); }
+  #log { max-height:260px; overflow-y:auto; font:12px/1.5 ui-monospace, Consolas, monospace; }
+  #log .warn { color:var(--amber); } #log .error { color:var(--red); } #log .success { color:var(--green); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:20px; font-size:12px; background:#0f2138; color:var(--blue); margin-left:6px; }
+  #gear { margin-left:auto; background:none; border:1px solid var(--edge); color:var(--dim); border-radius:8px; padding:6px 12px; cursor:pointer; font-size:13px; }
+  #gear:hover { color:var(--text); border-color:var(--dim); }
+  #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10; }
+  #overlay.open { display:flex; align-items:flex-start; justify-content:center; padding:40px 16px; overflow:auto; }
+  #settings { background:var(--card); border:1px solid var(--edge); border-radius:12px; padding:20px 22px; width:100%; max-width:520px; }
+  #settings h2 { margin:0 0 14px; font-size:15px; }
+  #settings label { display:block; color:var(--dim); font-size:12px; text-transform:uppercase; letter-spacing:.8px; margin:12px 0 4px; }
+  #settings input, #settings select { width:100%; background:#0e1420; color:var(--text); border:1px solid var(--edge); border-radius:8px; padding:8px 10px; font-size:14px; }
+  #settings .radios button { margin:6px 6px 0 0; background:#0f2138; color:var(--blue); border:1px solid var(--edge); border-radius:8px; padding:5px 10px; cursor:pointer; font-size:13px; }
+  #settings .actions { display:flex; gap:10px; margin-top:18px; }
+  #settings .actions button { flex:1; padding:10px; border-radius:8px; border:none; cursor:pointer; font-size:14px; font-weight:600; }
+  #saveBtn { background:var(--blue); color:#fff; }
+  #restartBtn { background:var(--amber); color:#211a06; display:none; }
+  #cancelBtn { background:#232b37; color:var(--text); }
+  #saveMsg { margin-top:10px; font-size:13px; color:var(--green); min-height:18px; }
+  .check { display:flex; align-items:center; gap:8px; margin-top:12px; color:var(--text); font-size:14px; }
+  .check input { width:auto; }
+</style>
+</head>
+<body>
+<header>
+  <span id="wsDot" class="dot"></span>
+  <h1>ACOM 700S ⇄ FLEX-8400 Bridge</h1>
+  <span id="boundTo" class="pill">no client</span>
+  <button id="gear" onclick="openSettings()">⚙ Settings</button>
+</header>
+
+<div id="overlay">
+  <div id="settings">
+    <h2>Bridge Settings</h2>
+
+    <label>Radio (FLEX-8400) IP address</label>
+    <input id="cfgHost" placeholder="192.168.1.100">
+    <div class="radios" id="radioList"></div>
+
+    <label>CAT serial port (to amp CAT/AUX)</label>
+    <select id="cfgCatPort"></select>
+
+    <label>Telemetry serial port (to amp RS-232 remote)</label>
+    <select id="cfgTelPort"></select>
+    <div class="check"><input type="checkbox" id="cfgTelEnabled"> <span>Telemetry enabled</span></div>
+
+    <label>Tune carrier power (watts)</label>
+    <input id="cfgTunePower" type="number" min="5" max="50">
+
+    <label>Tune-event webhook URL (optional — JSON POST on tune complete/fail)</label>
+    <input id="cfgNotify" placeholder="leave blank for none">
+
+    <label>Dashboard login — username</label>
+    <input id="cfgUser" placeholder="admin">
+    <label>Dashboard login — password (blank = no login required)</label>
+    <input id="cfgPass" type="password" placeholder="leave blank for LAN-only, no login">
+
+    <div class="check"><input type="checkbox" id="cfgAtu"> <span>Force internal ATU to BYPASS (recommended)</span></div>
+
+    <div class="actions">
+      <button id="cancelBtn" onclick="closeSettings()">Cancel</button>
+      <button id="saveBtn" onclick="saveSettings()">Save</button>
+      <button id="restartBtn" onclick="restartBridge()">Restart bridge</button>
+    </div>
+    <div id="saveMsg"></div>
+  </div>
+</div>
+
+<main>
+  <div class="card">
+    <h2>Radio</h2>
+    <div class="big" id="freq">—</div>
+    <div class="row"><span class="k">Mode</span><span id="mode">—</span></div>
+    <div class="row"><span class="k">Radio link</span><span id="flexConn">—</span></div>
+    <div class="row"><span class="k">Internal ATU</span><span id="atu">—</span></div>
+    <div class="row"><span class="k">Clients</span><span id="clients">—</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Tuner</h2>
+    <div id="tuneState">idle</div>
+    <table id="tuneHistory" style="margin-top:10px">
+      <thead><tr><th>Time</th><th>Freq</th><th>Result</th><th>Dur</th><th>SWR</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Amplifier <span id="ampBand" class="pill" style="display:none"></span></h2>
+    <div class="gauges">
+      <div class="gauge"><div class="v" id="fwd">—</div><div class="l">Forward W</div><div class="bar" id="fwdBar"><i></i></div></div>
+      <div class="gauge"><div class="v" id="refl">—</div><div class="l">Reflected W</div><div class="bar" id="reflBar"><i></i></div></div>
+      <div class="gauge"><div class="v" id="swr">—</div><div class="l">SWR</div><div class="bar" id="swrBar"><i></i></div></div>
+      <div class="gauge"><div class="v" id="temp">—</div><div class="l">PA Temp °C</div><div class="bar" id="tempBar"><i></i></div></div>
+      <div class="gauge"><div class="v" id="hv">—</div><div class="l">Drain V</div></div>
+      <div class="gauge"><div class="v" id="id">—</div><div class="l">Drain A</div></div>
+    </div>
+    <div class="row" style="margin-top:8px"><span class="k">Telemetry link</span><span id="ampConn">—</span></div>
+    <div class="row"><span class="k">Last frame</span><span id="ampLast">—</span></div>
+  </div>
+
+  <div class="card" style="grid-column:1/-1">
+    <h2>Events</h2>
+    <div id="log"></div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmtF = (hz) => hz ? (hz/1e6).toFixed(6).replace(/(\d)(?=(\d{3})+\.)/g,'$1.') + ' MHz'
+                        : '—';
+
+function setBar(id, pct, warnAt, badAt) {
+  const el = $(id);
+  el.firstElementChild.style.width = Math.max(0, Math.min(100, pct)) + '%';
+  el.className = 'bar' + (pct >= badAt ? ' bad' : pct >= warnAt ? ' warn' : '');
+}
+
+function onFlex(d) {
+  $('flexConn').textContent = d.connected ? 'connected' : 'DISCONNECTED';
+  $('flexConn').className = d.connected ? 'ok' : 'bad';
+  $('boundTo').textContent = d.boundTo || 'no client';
+  $('clients').textContent = d.clients && d.clients.length ? d.clients.join(', ') : 'none';
+  const atu = d.atuStatus || 'unknown';
+  $('atu').textContent = atu;
+  $('atu').className = /BYPASS|NONE/i.test(atu) ? 'ok' : 'bad';
+  if (d.txSlice) { $('freq').textContent = fmtF(d.txSlice.freq); $('mode').textContent = d.txSlice.mode || '—'; }
+}
+
+function onTune(d) {
+  const st = d.state;
+  const el = $('tuneState');
+  if (st.tuning) { el.textContent = 'TUNING — carrier on'; el.className = 'active'; }
+  else { el.textContent = 'idle'; el.className = ''; }
+  const tb = $('tuneHistory').tBodies[0];
+  tb.innerHTML = '';
+  for (const h of (st.history || [])) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${new Date(h.ts).toLocaleTimeString()}</td>
+      <td>${h.freqHz ? (h.freqHz/1e6).toFixed(3) : '?'}</td>
+      <td class="${h.ok ? 'ok' : 'bad'}">${h.ok ? 'complete' : h.reason}</td>
+      <td>${(h.durationMs/1000).toFixed(1)}s</td>
+      <td>${h.finalSwr ? h.finalSwr.toFixed(2) : '—'}</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+function onAmp(d) {
+  $('ampConn').textContent = !d.enabled ? 'disabled' : d.connected ? 'connected' : 'DISCONNECTED';
+  $('ampConn').className = d.connected ? 'ok' : (d.enabled ? 'bad' : '');
+  $('ampLast').textContent = d.lastFrameAt ? new Date(d.lastFrameAt).toLocaleTimeString() : '—';
+  if (d.band) { $('ampBand').textContent = d.band; $('ampBand').style.display = 'inline-block'; }
+  if (d.fwdPower != null) { $('fwd').textContent = d.fwdPower; setBar('fwdBar', d.fwdPower/700*100, 95, 101); }
+  if (d.reflPower != null) { $('refl').textContent = d.reflPower; setBar('reflBar', d.reflPower/70*100, 50, 80); }
+  if (d.swr != null) { $('swr').textContent = d.swr.toFixed(2); setBar('swrBar', (d.swr-1)/2*100, 50, 75); }
+  if (d.temp1C != null) { $('temp').textContent = d.temp1C; setBar('tempBar', d.temp1C/90*100, 70, 85); }
+  if (d.hv1 != null) $('hv').textContent = d.hv1.toFixed(1);
+  if (d.id1 != null && d.id2 != null) $('id').textContent = (d.id1 + d.id2).toFixed(1);
+}
+
+function onEvent(e) {
+  const div = document.createElement('div');
+  div.className = e.kind;
+  div.textContent = `${new Date(e.ts).toLocaleTimeString()} [${e.tag}] ${e.text}`;
+  const logEl = $('log');
+  logEl.prepend(div);
+  while (logEl.children.length > 200) logEl.lastChild.remove();
+  if (e.kind === 'success' && 'Notification' in window && Notification.permission === 'granted') {
+    new Notification('ACOM Tuner', { body: e.text });
+  }
+}
+
+function connect() {
+  const ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host);
+  ws.onopen = () => $('wsDot').classList.add('on');
+  ws.onclose = () => { $('wsDot').classList.remove('on'); setTimeout(connect, 2000); };
+  ws.onmessage = (m) => {
+    const { type, data } = JSON.parse(m.data);
+    if (type === 'full') {
+      if (data.flex) onFlex(data.flex);
+      if (data.tune) onTune({ state: data.tune });
+      if (data.amp) onAmp(data.amp);
+      (data.events || []).forEach(onEvent);
+    }
+    if (type === 'flex') onFlex(data);
+    if (type === 'tune') onTune(data);
+    if (type === 'amp') onAmp(data);
+    if (type === 'event') onEvent(data);
+  };
+}
+async function openSettings() {
+  document.getElementById('overlay').classList.add('open');
+  $('saveMsg').textContent = '';
+  $('restartBtn').style.display = 'none';
+  const [cfg, ports, radios] = await Promise.all([
+    fetch('/api/config').then((r) => r.json()),
+    fetch('/api/ports').then((r) => r.json()),
+    fetch('/api/radios').then((r) => r.json()),
+  ]);
+  const opt = (p) => `<option value="${p.path}">${p.path}${p.manufacturer ? ' — ' + p.manufacturer : ''}</option>`;
+  const fill = (sel, current) => {
+    const el = $(sel);
+    el.innerHTML = ports.map(opt).join('');
+    if (current && ![...el.options].some((o) => o.value === current)) {
+      el.innerHTML += `<option value="${current}">${current} (not present)</option>`;
+    }
+    el.value = current || (ports[0] && ports[0].path) || '';
+  };
+  fill('cfgCatPort', cfg.serial.port);
+  fill('cfgTelPort', cfg.telemetry.port);
+  $('cfgHost').value = cfg.flex.host || '';
+  $('cfgTelEnabled').checked = !!cfg.telemetry.enabled;
+  $('cfgTunePower').value = cfg.tune.tunePowerDefault;
+  $('cfgNotify').value = (cfg.notify && cfg.notify.url) || '';
+  $('cfgUser').value = cfg.dashboard.user || 'admin';
+  $('cfgPass').value = cfg.dashboard.password || '';
+  $('cfgAtu').checked = cfg.flex.enforceAtuBypass !== false;
+  $('radioList').innerHTML = radios.length
+    ? 'Found on network: ' + radios.map((r) =>
+        `<button onclick="document.getElementById('cfgHost').value='${r.ip}'">${r.model}${r.nickname ? ' “' + r.nickname + '”' : ''} — ${r.ip}</button>`).join('')
+    : '<span style="color:var(--dim);font-size:12px">No radios auto-discovered (enter IP manually — SmartSDR shows it in the radio chooser).</span>';
+}
+
+function closeSettings() { document.getElementById('overlay').classList.remove('open'); }
+
+async function saveSettings() {
+  const patch = {
+    serial: { port: $('cfgCatPort').value },
+    telemetry: { port: $('cfgTelPort').value, enabled: $('cfgTelEnabled').checked },
+    flex: { host: $('cfgHost').value.trim(), enforceAtuBypass: $('cfgAtu').checked },
+    tune: { tunePowerDefault: parseInt($('cfgTunePower').value, 10) || 25 },
+    notify: { url: $('cfgNotify').value.trim() },
+    dashboard: { user: $('cfgUser').value.trim() || 'admin', password: $('cfgPass').value },
+  };
+  const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) }).then((x) => x.json());
+  if (r.ok) {
+    $('saveMsg').textContent = 'Saved. Restart the bridge to apply.';
+    $('restartBtn').style.display = 'block';
+  } else {
+    $('saveMsg').textContent = 'Save failed: ' + r.error;
+  }
+}
+
+async function restartBridge() {
+  $('saveMsg').textContent = 'Restarting… the page will reconnect automatically.';
+  await fetch('/api/restart', { method: 'POST' }).catch(() => {});
+  setTimeout(() => location.reload(), 4000);
+}
+
+if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+connect();
+</script>
+</body>
+</html>

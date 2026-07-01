@@ -1,0 +1,19 @@
+{
+  "name": "acom-flex-bridge",
+  "version": "0.2.0",
+  "description": "Translator, telemetry, and dashboard bridging an ACOM 700S/06AT to a FlexRadio FLEX-8400 via the native SmartSDR TCP API. Works alongside SmartSDR, AetherSDR, or Maestro.",
+  "main": "bridge.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node bridge.js",
+    "ports": "node -e \"require('serialport').SerialPort.list().then(p => console.table(p.map(x => ({path: x.path, manufacturer: x.manufacturer, serial: x.serialNumber}))))\""
+  },
+  "dependencies": {
+    "serialport": "^12.0.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

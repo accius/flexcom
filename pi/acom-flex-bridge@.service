@@ -1,0 +1,16 @@
+[Unit]
+Description=ACOM-Flex Bridge (CAT translator, telemetry, dashboard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/acom-flex-bridge
+ExecStart=/usr/bin/node /home/%i/acom-flex-bridge/bridge.js
+Restart=always
+RestartSec=3
+# Serial port access requires the user to be in the 'dialout' group.
+
+[Install]
+WantedBy=multi-user.target

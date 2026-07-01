@@ -1,0 +1,67 @@
+{
+  "_comment": "acom-flex-bridge v0.2 configuration. Edit and restart.",
+
+  "serial": {
+    "_comment": "COM port wired to the ACOM 700S *CAT/AUX* port (Kenwood CAT). Run 'npm run ports' to list ports. Match baud to the amp's CAT menu (usually 9600 8N1).",
+    "port": "COM3",
+    "baudRate": 9600,
+    "dataBits": 8,
+    "stopBits": 1,
+    "parity": "none"
+  },
+
+  "telemetry": {
+    "_comment": "SECOND serial connection - to the amp's rear-panel *RS-232 remote* port (straight-through TX/RX/GND only; the bridge holds DTR/RTS low so the front-panel power button keeps working). measurementAddress: the ACOM protocol address byte of the measurement telegram - leave null for the first session, read the 'Frame addr=0x..' log lines, then set it (as decimal or 0x hex string is fine after JSON.parse; use decimal). measurementFieldOffset: byte offset of temp1 within that frame (default 8 per the protocol doc). logAllFrames: hex-log every frame, not just the first few per address.",
+    "enabled": true,
+    "port": "COM4",
+    "baudRate": 9600,
+    "measurementAddress": null,
+    "measurementFieldOffset": 8,
+    "sendAck": true,
+    "logAllFrames": false
+  },
+
+  "flex": {
+    "_comment": "IP of the FLEX-8400 (give it a DHCP reservation). enforceAtuBypass: keeps the radio's internal ATU in BYPASS at all times - mandatory with the amp + 06AT in line. Re-asserted at startup, before every tune, and whenever the ATU leaves bypass.",
+    "host": "192.168.1.100",
+    "port": 4992,
+    "pingIntervalMs": 5000,
+    "reconnectDelayMs": 3000,
+    "enforceAtuBypass": true
+  },
+
+  "tune": {
+    "_comment": "tunePowerDefault: carrier watts when the amp requests tune (06AT wants 12.5-50 W at the amp input; the amp asks for 20-30). followAmpPowerRequest: PC commands from the amp during tune override the default. maxTuneSeconds: safety carrier drop.",
+    "tunePowerDefault": 25,
+    "followAmpPowerRequest": true,
+    "maxTuneSeconds": 30
+  },
+
+  "cat": {
+    "_comment": "allowFreqWritesFromAmp false = amp frequency writes acked but dropped (kills the post-tune 0 Hz jump). minValidFreqHz: hard floor even if writes enabled. identity 019 = Kenwood TS-2000.",
+    "allowFreqWritesFromAmp": false,
+    "minValidFreqHz": 1800000,
+    "forwardPowerOutsideTune": false,
+    "identity": "019"
+  },
+
+  "dashboard": {
+    "_comment": "Web dashboard + live WebSocket at http://<host>:8990. user/password: optional login - blank password means no login prompt (fine for LAN-only). For access from anywhere, set credentials AND put HTTPS in front - see pi/README-PI.md 'Access from anywhere'. 5 failed logins = 5 minute per-IP lockout. When Caddy fronts the bridge on the same Pi, set host to 127.0.0.1 so only Caddy can reach it.",
+    "host": "0.0.0.0",
+    "port": 8990,
+    "user": "admin",
+    "password": ""
+  },
+
+  "notify": {
+    "_comment": "Optional outbound webhook fired when a tune completes/fails - leave blank if the dashboard is all you need. Any URL gets a JSON POST {event, text, freqHz, durationMs, finalSwr, ok}; ntfy.sh URLs get plain-text style automatically.",
+    "url": ""
+  },
+
+  "logging": {
+    "_comment": "Keep 'debug' for the first capture sessions.",
+    "level": "debug",
+    "dir": "logs",
+    "logToConsole": true
+  }
+}
