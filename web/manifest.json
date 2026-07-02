@@ -1,0 +1,12 @@
+{
+  "name": "ACOM ⇄ Flex Station",
+  "short_name": "ACOM Flex",
+  "description": "Station dashboard for an ACOM S-series amp, 04AT/06AT tuner, and FlexRadio",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e1116",
+  "theme_color": "#0e1116",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

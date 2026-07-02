@@ -1,6 +1,6 @@
 # Hardware Hookup Guide
 
-Station: **FLEX-8400 → ACOM 700S → ACOM 06AT → antennas**, bridge PC on the shack LAN.
+Station: **FLEX-8400 → ACOM 700S → ACOM 06AT → antennas**, bridge PC (or Pi/Mac) on the shack LAN.
 Same topology applies to other S-series amps and the 04AT.
 
 ## The complete picture
@@ -10,7 +10,7 @@ Same topology applies to other S-series amps and the 04AT.
         ┌──────────────────────────────────────────────────┐
         │                                                  │
   ┌─────┴─────┐                                     ┌──────┴──────┐
-  │ FLEX-8400 │                                     │  Windows PC │
+  │ FLEX-8400 │                                     │  bridge PC  │
   │           │                                     │  (bridge +  │
   │ ANT1 ○────┼── coax #1 ──────────────┐           │  dashboard) │
   │ TX1  ○────┼── RCA PTT ────────┐     │           └──┬───────┬──┘
@@ -65,7 +65,7 @@ Do this in order, with **everything powered off and mains disconnected from the 
 2. **Radio-side settings** (one time):
    - SmartSDR → Settings → **TX Band Settings**: enable **TX1** on every band where the amp will be used; set **RF Power** and **Tune Power** sensibly (tune power also gets driven by the bridge).
    - Confirm the internal **ATU shows BYPASS** (the bridge will enforce this, but verify once yourself).
-3. **PC next.** Start the bridge (`Start Bridge.bat`); in dashboard ⚙ Settings select the radio and both COM ports, Save, Restart. Confirm the dashboard shows the radio connected, a bound client, and ATU BYPASS.
+3. **PC next.** Start the bridge (`Start Bridge.bat` on Windows, `./start.sh` on macOS/Linux); in dashboard ⚙ Settings select the radio, both serial ports, and the amp model, then Save, Restart. Confirm the dashboard shows the radio connected, a bound client, and ATU BYPASS.
 4. **Amp last**, in **STANDBY**:
    - Amp menu → CAT: protocol **Kenwood**, interface **RS232**, baud **9600** (matching config).
    - The tuner powers up with the amp (watch for the ATU/antenna info on the amp's screen — that confirms the coax-carried control link to the 06AT is alive).
@@ -80,7 +80,7 @@ Do this in order, with **everything powered off and mains disconnected from the 
 
 - [ ] Amp display follows frequency changes from the SDR client
 - [ ] Dashboard: radio connected, client bound, ATU = BYPASS
-- [ ] Dashboard: telemetry link connected, PA temp ≈ room temperature, drain volts ≈ 48–53 V
+- [ ] Dashboard: telemetry link connected, amp state shows STANDBY, PA temp ≈ room temperature
 - [ ] Standby tune cycle completes and the carrier drops by itself
 - [ ] Front-panel power button on the amp still works (proves the remote-port handshake lines are safely unwired)
 - [ ] `logs/` contains no `Unhandled command from amp` lines — or you've sent them upstream so rules can be added

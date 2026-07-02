@@ -1,14 +1,16 @@
 #!/usr/bin/env node
 /**
- * acom-flex-bridge v0.2
- * ACOM 700S + 06AT  <->  FLEX-8400 translator, telemetry, and dashboard.
- * See README.md for wiring and first-session capture procedure.
+ * acom-flex-bridge
+ * ACOM S-series + 04AT/06AT  <->  FlexRadio translator, telemetry,
+ * amp/radio control, and web dashboard.
+ * See README.md for wiring and first-session procedure.
  */
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 
+const VERSION = require('./package.json').version;
 const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 
 const { init, log } = require('./lib/log');
@@ -21,22 +23,40 @@ const { AcomTelemetry } = require('./lib/telemetry');
 const { startDashboard } = require('./lib/dashboard');
 const { FlexDiscovery } = require('./lib/discovery');
 
-log('info', 'MAIN', '=== acom-flex-bridge v0.3.0 starting ===');
+log('info', 'MAIN', `=== acom-flex-bridge v${VERSION} starting ===`);
 
 const flex = new FlexClient(cfg);
 const telemetry = new AcomTelemetry(cfg);
-const tuner = new TuneController(cfg, flex, () => telemetry.snapshot());
+const tuner = new TuneController(cfg, flex, () => telemetry.snapshot(), __dirname);
 const catEmu = new CatEmulator(cfg, flex, tuner);
 const discovery = new FlexDiscovery();
 
 // During a tune cycle, feed amp-reported SWR into the tune result.
 telemetry.onSwr = (swr) => tuner.observeSwr(swr);
 
+// Dashboard-initiated actions (arrive over the WebSocket).
+const clampW = (w, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(w) || 0)));
+const commands = {
+  'radio.qsy': (a) => flex.qsy(Number(a.hz)),
+  'radio.mode': (a) => flex.setMode(a.mode),
+  'radio.rfpower': (a) => flex.setRfPower(clampW(a.watts, 0, 100)),
+  'radio.tunepower': (a) => flex.setTunePower(clampW(a.watts, 1, 100)),
+  'radio.bind': (a) => flex.bindTo(a.clientId || null),
+  'radio.atuBypass': () => flex.enforceAtuBypass('dashboard'),
+  'tune.start': (a) => tuner.start(clampW(a.watts || cfg.tune.tunePowerDefault, 1, 100), 'dashboard'),
+  'tune.stop': () => tuner.stop('dashboard'),
+  'amp.operate': () => telemetry.operate(),
+  'amp.standby': () => telemetry.standby(),
+  'amp.off': () => telemetry.powerOff(),
+};
+
 startDashboard(cfg, () => ({
+  version: VERSION,
   flex: flex.snapshot(),
   tune: tuner.snapshot(),
   amp: telemetry.snapshot(),
-}), { discovery });
+  cat: catEmu.snapshot(),
+}), { discovery, tuner, commands });
 
 discovery.start();
 

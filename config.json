@@ -1,9 +1,9 @@
 {
-  "_comment": "acom-flex-bridge v0.2 configuration. Edit and restart.",
+  "_comment": "acom-flex-bridge configuration. Everything here is editable from the dashboard Settings panel; restart to apply. Serial port names: COM3-style on Windows, /dev/serial/by-id/... on Linux (stable across reboots), /dev/tty.usbserial-... on macOS.",
 
   "serial": {
-    "_comment": "COM port wired to the ACOM 700S *CAT/AUX* port (Kenwood CAT). Run 'npm run ports' to list ports. Match baud to the amp's CAT menu (usually 9600 8N1).",
-    "port": "COM3",
+    "_comment": "Serial port wired to the ACOM *CAT/AUX* port (Kenwood CAT). Leave empty and pick it in dashboard Settings. Match baud to the amp's CAT menu (usually 9600 8N1).",
+    "port": "",
     "baudRate": 9600,
     "dataBits": 8,
     "stopBits": 1,
@@ -11,27 +11,30 @@
   },
 
   "telemetry": {
-    "_comment": "SECOND serial connection - to the amp's rear-panel *RS-232 remote* port (straight-through TX/RX/GND only; the bridge holds DTR/RTS low so the front-panel power button keeps working). measurementAddress: the ACOM protocol address byte of the measurement telegram - leave null for the first session, read the 'Frame addr=0x..' log lines, then set it (as decimal or 0x hex string is fine after JSON.parse; use decimal). measurementFieldOffset: byte offset of temp1 within that frame (default 8 per the protocol doc). logAllFrames: hex-log every frame, not just the first few per address.",
+    "_comment": "SECOND serial connection - to the amp's rear-panel *RS-232 remote* port (straight-through TX/RX/GND only; the bridge holds DTR/RTS low so the front-panel power button keeps working). model: 500S/600S/700S/1200S/2020S - sets the PA temperature calibration; tempOffset overrides it if set. keepaliveMs: how often the telemetry-enable telegram is re-sent. allowPowerControl: set false to disable the dashboard's amp Power-Off button. sendAck: optional 0x86 confirmations (not needed in practice). logAllFrames: hex-log every frame for protocol work.",
     "enabled": true,
-    "port": "COM4",
+    "port": "",
     "baudRate": 9600,
-    "measurementAddress": null,
-    "measurementFieldOffset": 8,
-    "sendAck": true,
+    "model": "700S",
+    "tempOffset": null,
+    "keepaliveMs": 1000,
+    "allowPowerControl": true,
+    "sendAck": false,
     "logAllFrames": false
   },
 
   "flex": {
-    "_comment": "IP of the FLEX-8400 (give it a DHCP reservation). enforceAtuBypass: keeps the radio's internal ATU in BYPASS at all times - mandatory with the amp + 06AT in line. Re-asserted at startup, before every tune, and whenever the ATU leaves bypass.",
-    "host": "192.168.1.100",
+    "_comment": "IP of the FlexRadio (give it a DHCP reservation; auto-discovered radios appear in dashboard Settings). enforceAtuBypass: keeps the radio's internal ATU in BYPASS at all times - mandatory with the amp + external tuner in line. preferredClient: optional program or station name to prefer when several GUI clients (SmartSDR, AetherSDR, Maestro) are connected; the dashboard header can also pin one live.",
+    "host": "",
     "port": 4992,
     "pingIntervalMs": 5000,
     "reconnectDelayMs": 3000,
-    "enforceAtuBypass": true
+    "enforceAtuBypass": true,
+    "preferredClient": ""
   },
 
   "tune": {
-    "_comment": "tunePowerDefault: carrier watts when the amp requests tune (06AT wants 12.5-50 W at the amp input; the amp asks for 20-30). followAmpPowerRequest: PC commands from the amp during tune override the default. maxTuneSeconds: safety carrier drop.",
+    "_comment": "tunePowerDefault: carrier watts when a tune starts (04AT/06AT want 12.5-50 W at the amp input; the amp asks for 20-30). followAmpPowerRequest: PC commands from the amp during tune override the default. maxTuneSeconds: safety carrier drop.",
     "tunePowerDefault": 25,
     "followAmpPowerRequest": true,
     "maxTuneSeconds": 30
@@ -46,7 +49,7 @@
   },
 
   "dashboard": {
-    "_comment": "Web dashboard + live WebSocket at http://<host>:8990. user/password: optional login - blank password means no login prompt (fine for LAN-only). For access from anywhere, set credentials AND put HTTPS in front - see pi/README-PI.md 'Access from anywhere'. 5 failed logins = 5 minute per-IP lockout. When Caddy fronts the bridge on the same Pi, set host to 127.0.0.1 so only Caddy can reach it.",
+    "_comment": "Web dashboard + live WebSocket at http://<host>:8990. user/password: optional login - blank password means no login prompt (fine for LAN-only). For access from anywhere, set credentials AND put HTTPS in front - see pi/README-PI.md 'Access from anywhere'. 5 failed logins = 5 minute per-IP lockout. When Caddy fronts the bridge on the same machine, set host to 127.0.0.1 so only Caddy can reach it.",
     "host": "0.0.0.0",
     "port": 8990,
     "user": "admin",
@@ -59,7 +62,7 @@
   },
 
   "logging": {
-    "_comment": "Keep 'debug' for the first capture sessions.",
+    "_comment": "Keep 'debug' for the first sessions.",
     "level": "debug",
     "dir": "logs",
     "logToConsole": true
