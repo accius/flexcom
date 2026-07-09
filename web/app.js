@@ -112,7 +112,7 @@ function onFlex(d) {
   $('txBadge').classList.toggle('on', !!tx);
   const atu = d.atuStatus || '—';
   $('atuPill').textContent = 'ATU ' + atu;
-  $('atuPill').style.color = /BYPASS|NONE/i.test(atu) ? 'var(--good)' : 'var(--critical)';
+  $('atuPill').style.color = /BYPASS|NONE|NOT_STARTED/i.test(atu) ? 'var(--good)' : 'var(--critical)';
   if (d.txSlice) {
     $('freq').textContent = '';
     $('freq').append(fmtFreq(d.txSlice.freq));
@@ -576,10 +576,12 @@ function onCat(d) { catState = d; refreshCatDot(); }
 function refreshCatDot() {
   const d = catState;
   const fresh = d && d.open && d.lastRxAt && Date.now() - new Date(d.lastRxAt) < 15000;
-  setDot('catDot', !!fresh);
+  const garbage = d && d.lastGarbageAt && Date.now() - new Date(d.lastGarbageAt) < 60000;
+  setDot('catDot', !!fresh && !garbage);
   document.querySelector('#catDot').parentElement.title = !d || !d.configured
     ? 'CAT serial port not configured'
     : !d.open ? 'CAT serial port not open'
+    : garbage ? 'CAT port receiving garbage — baud/protocol mismatch? Amp CAT menu must be KENWOOD / RS232 at the baud set in Settings'
     : fresh ? 'Amp CAT link live' : 'Port open, no CAT traffic from amp';
 }
 setInterval(refreshCatDot, 5000);
@@ -622,6 +624,8 @@ async function openSettings() {
   };
   fill('cfgCatPort', cfg.serial.port);
   fill('cfgTelPort', cfg.telemetry.port);
+  $('cfgCatBaud').value = String(cfg.serial.baudRate || 9600);
+  $('cfgTelBaud').value = String(cfg.telemetry.baudRate || 9600);
   $('cfgHost').value = cfg.flex.host || '';
   $('cfgPreferred').value = cfg.flex.preferredClient || '';
   $('cfgTelEnabled').checked = cfg.telemetry.enabled !== false;
@@ -655,9 +659,13 @@ function closeSettings() { $('overlay').classList.remove('open'); }
 
 async function saveSettings() {
   const patch = {
-    serial: { port: $('cfgCatPort').value },
+    serial: {
+      port: $('cfgCatPort').value,
+      baudRate: parseInt($('cfgCatBaud').value, 10) || 9600,
+    },
     telemetry: {
       port: $('cfgTelPort').value,
+      baudRate: parseInt($('cfgTelBaud').value, 10) || 9600,
       enabled: $('cfgTelEnabled').checked,
       allowPowerControl: $('cfgPowerCtl').checked,
       model: $('cfgModel').value,
