@@ -1,6 +1,6 @@
 {
   "name": "acom-flex-bridge",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Station dashboard and translator bridging an ACOM S-series amp + 04AT/06AT autotuner to a FlexRadio via the native SmartSDR TCP API. Works alongside SmartSDR, AetherSDR, or Maestro - on Windows, macOS, Linux, or a Raspberry Pi.",
   "main": "bridge.js",
   "type": "commonjs",
