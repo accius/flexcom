@@ -1,0 +1,25 @@
+{
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.exclude": {
+    "node_modules": true
+  },
+  "search.exclude": {
+    "node_modules": true,
+    "logs": true,
+    "data": true,
+    "package-lock.json": true
+  },
+  "files.associations": {
+    "*.bat": "bat",
+    "*.service": "ini"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": null
+  },
+  "javascript.preferences.quoteStyle": "single",
+  "npm.packageManager": "npm"
+}

@@ -6,6 +6,8 @@
   "type": "commonjs",
   "scripts": {
     "start": "node bridge.js",
+    "dev": "node --watch bridge.js",
+    "check": "node -e \"const {execFileSync}=require('child_process');const fs=require('fs');const files=['bridge.js','diag.js',...fs.readdirSync('lib').filter(f=>f.endsWith('.js')).map(f=>'lib/'+f)];for(const f of files)execFileSync(process.execPath,['--check',f],{stdio:'inherit'});console.log('syntax ok ('+files.length+' files)')\"",
     "diag": "node diag.js",
     "ports": "node -e \"require('serialport').SerialPort.list().then(p => console.table(p.map(x => ({path: x.path, manufacturer: x.manufacturer, serial: x.serialNumber}))))\""
   },
