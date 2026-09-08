@@ -137,7 +137,8 @@ Pick whichever fits your station — the bridge doesn't care:
 - **Amp gauges dead** — telemetry port not set (Settings), or DTR/RTS wired on the remote cable (they must not be), or the two serial cables are swapped (CAT ↔ remote).
 - **PA temperature reads ~10 °C off** — wrong amp model in Settings (each model has its own calibration offset).
 - **Amp front-panel power button stops working** — a handshake line is wired on the remote port. Use pins 2/3/5 only; the bridge holds DTR/RTS low, but hardware-looped handshake lines defeat that.
-- **Tune carrier never appears** — confirm a GUI client is bound (header dropdown) and the radio dot is green; check `R<seq>|` error replies in the debug log.
+- **Tune carrier never appears / "Tune refused: bound client ... has no TX slice"** — the bridge only keys the TX slice owned by the GUI client it is bound to (header dropdown), and reports that slice's frequency to the amp. On an M-model radio the front panel is a GUI client too, and it usually owns no slice: pick SmartSDR/AetherSDR/Maestro in the dropdown (or leave it on *auto*, which prefers whichever client owns a TX slice). A radio reply like `The transmitter is not ready` ends the cycle immediately and shows as a failed tune with that reason.
+- **Radio drops off the network during a tune** (log shows `ECONNRESET` then `EHOSTUNREACH`, SmartSDR loses the radio too) — that is RF getting into the Ethernet, not a software fault. Ferrites on the network cables at the radio and the PC, and keep them away from the coax. The bridge marks the tune failed, keeps answering the amp with the last known frequency, and sends carrier-off the moment it reconnects.
 - **Serial permissions on Linux** — `./install.sh` adds you to `dialout`; log out/in once after that.
 
 ## Status / roadmap

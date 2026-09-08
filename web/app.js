@@ -122,8 +122,10 @@ function onFlex(d) {
   } else {
     $('freq').textContent = d.connected ? 'no slice' : '—';
   }
+  // Slices owned by other GUI clients are tagged with their owner - the
+  // bridge only ever keys the bound client's own TX slice.
   $('slices').textContent = d.slices && d.slices.length
-    ? d.slices.map((s) => `${(s.freq / 1e6).toFixed(3)}${s.tx ? ' TX' : ''}`).join('  ·  ') : 'none';
+    ? d.slices.map((s) => `${(s.freq / 1e6).toFixed(3)}${s.tx ? ' TX' : ''}${s.owner && !s.mine ? ' (' + s.owner + ')' : ''}`).join('  ·  ') : 'none';
 
   // Client picker: auto + every GUI client.
   const sel = $('clientSel');

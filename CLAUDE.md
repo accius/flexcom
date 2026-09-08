@@ -51,7 +51,12 @@ pi/               Raspberry Pi install script, systemd unit, Caddy HTTPS setup
 - Safety-relevant invariants (do not weaken casually): frequency writes from the
   amp below `cat.minValidFreqHz` are dropped; the radio's internal ATU is held in
   BYPASS when `flex.enforceAtuBypass` is true; the tune carrier is force-dropped
-  after `tune.maxTuneSeconds`. This software keys a transmitter.
+  after `tune.maxTuneSeconds`; `txSlice()` only ever returns a slice owned by the
+  GUI client the bridge is bound to (the radio keys THAT client's slice on
+  `transmit tune on`, so the amp must be told that slice's band and no other);
+  a tune never starts without such a slice; CAT never answers 0 Hz (last known
+  frequency while the radio link is down); `transmit tune off` is sent on every
+  reconnect. This software keys a transmitter.
 - Log level stays `debug` by default on purpose; the logs are the ground truth
   for refining CAT translation rules (`lib/cat.js`). Unknown CAT commands are
   logged as `Unhandled command from amp: ...`.

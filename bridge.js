@@ -33,6 +33,8 @@ const discovery = new FlexDiscovery();
 
 // During a tune cycle, feed amp-reported SWR into the tune result.
 telemetry.onSwr = (swr) => tuner.observeSwr(swr);
+// Never move the client binding while a carrier is up.
+flex.isTuning = () => tuner.tuning;
 
 // Dashboard-initiated actions (arrive over the WebSocket).
 const clampW = (w, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(w) || 0)));
