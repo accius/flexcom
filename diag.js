@@ -16,7 +16,8 @@ const path = require('path');
 const dgram = require('dgram');
 const http = require('http');
 
-const ROOT = __dirname;
+const ROOT = __dirname;                      // code
+const HOME = require('./lib/paths').HOME;    // config.json, logs/, data/
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
 const out = [];
 const P = (s = '') => { out.push(s); console.log(s); };
@@ -26,7 +27,7 @@ const WARN = (s) => P(`  [WARN] ${s}`);
 const INFO = (s) => P(`         ${s}`);
 
 function readConfig() {
-  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8')); }
+  try { return JSON.parse(fs.readFileSync(path.join(HOME, 'config.json'), 'utf8')); }
   catch (e) { BAD(`config.json unreadable: ${e.message}`); return null; }
 }
 
@@ -154,7 +155,7 @@ function checkBridge(cfg) {
 
 function tailLog(cfg) {
   P('\n== Log tail ==');
-  const dir = path.join(ROOT, (cfg.logging && cfg.logging.dir) || 'logs');
+  const dir = path.join(HOME, (cfg.logging && cfg.logging.dir) || 'logs');
   try {
     const files = fs.readdirSync(dir).filter((f) => f.startsWith('bridge-')).sort();
     if (!files.length) { WARN('No log files yet.'); return; }
@@ -178,7 +179,7 @@ function tailLog(cfg) {
   await checkDiscovery();
   await checkBridge(cfg);
   tailLog(cfg);
-  const file = path.join(ROOT, 'diagnostics.txt');
+  const file = path.join(HOME, 'diagnostics.txt');
   fs.writeFileSync(file, out.join('\n') + '\n');
   P(`\nReport saved to ${file} - paste it when asking for help.`);
 })();

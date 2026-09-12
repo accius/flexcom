@@ -1,0 +1,52 @@
+name: Release desktop app
+
+# Push a version tag to build installers and publish a GitHub Release:
+#   git tag v0.7.0 && git push origin v0.7.0
+# Or run it by hand from the Actions tab to get the installers as artifacts
+# without creating a release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows installer
+          - os: macos-latest
+            name: macOS DMG (Intel + Apple Silicon)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+
+      - name: Build and publish release (tag push)
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build only (manual run)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        run: npx electron-builder --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            dist/*.exe
+            dist/*.dmg
+          if-no-files-found: error

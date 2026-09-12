@@ -13,6 +13,9 @@ wiring: HOOKUP.md, Raspberry Pi: pi/README-PI.md.
 - `npm run dev` runs the bridge under `node --watch` so it restarts on file edits.
 - `npm run check` syntax-checks every JS file. There is no test suite.
 - `npm run diag` prints a station diagnostics report (serial ports, radio reachability, log tail).
+- `npm run app` runs the desktop shell (Electron) unpackaged; `npm run dist:win` /
+  `dist:mac` build installers locally. Releases are built by
+  `.github/workflows/release.yml` on a `v*` tag push (`npm version x.y.z && git push --tags`).
 - The bridge boots fine with no radio and no serial ports configured: it logs
   "not configured yet" for each and still serves the dashboard. That is the
   normal state on a dev machine without the station attached.
@@ -21,6 +24,9 @@ wiring: HOOKUP.md, Raspberry Pi: pi/README-PI.md.
 
 ```
 bridge.js         entry point: loads config.json, wires modules, dashboard command table
+desktop/main.js   Electron shell: forks bridge.js (utilityProcess), respawns it on exit, window + tray
+lib/paths.js      HOME for config.json/logs/data: repo root, or $ACOM_BRIDGE_HOME (desktop app sets it)
+build/icon.png    app icon (rendered from web/icon.svg); electron-builder makes .ico/.icns from it
 diag.js           one-shot diagnostics (npm run diag / Diagnose.bat)
 lib/flex.js       SmartSDR TCP API client, GUI-client binding, radio control, ATU bypass guard
 lib/cat.js        Kenwood CAT emulator facing the amp (serial)
@@ -42,7 +48,11 @@ pi/               Raspberry Pi install script, systemd unit, Caddy HTTPS setup
   developing, keep them out of commits with:
   `git update-index --skip-worktree config.json`
   (undo with `--no-skip-worktree`). Commit config.json only for schema/default changes.
-- `logs/` and `data/` are runtime output and gitignored.
+- `logs/` and `data/` are runtime output and gitignored. All mutable-file paths go
+  through `lib/paths.js`; never `__dirname` a config/log/data path, because in the
+  packaged app the code sits in a read-only asar archive.
+- serialport ships N-API prebuilds, so `npmRebuild` is off in the electron-builder
+  config and the same node_modules serve Node and Electron. Keep it that way.
 - Serial port names are platform-native: `COM3` on Windows, `/dev/serial/by-id/...`
   on Linux, `/dev/tty.usbserial-...` on macOS.
 - The dashboard's Restart button calls `process.exit(0)`; the launcher scripts

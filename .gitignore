@@ -2,3 +2,4 @@ node_modules/
 logs/
 data/
 diagnostics.txt
+dist/

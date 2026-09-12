@@ -8,13 +8,14 @@
 'use strict';
 
 const fs = require('fs');
-const path = require('path');
 
 const VERSION = require('./package.json').version;
-const cfg = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+const paths = require('./lib/paths');
+paths.ensureHome();
+const cfg = JSON.parse(fs.readFileSync(paths.CONFIG, 'utf8'));
 
 const { init, log } = require('./lib/log');
-init(cfg.logging, __dirname);
+init(cfg.logging, paths.HOME);
 
 const { FlexClient } = require('./lib/flex');
 const { TuneController } = require('./lib/tune');
@@ -23,11 +24,11 @@ const { AcomTelemetry } = require('./lib/telemetry');
 const { startDashboard } = require('./lib/dashboard');
 const { FlexDiscovery } = require('./lib/discovery');
 
-log('info', 'MAIN', `=== acom-flex-bridge v${VERSION} starting ===`);
+log('info', 'MAIN', `=== acom-flex-bridge v${VERSION} starting (home: ${paths.HOME}) ===`);
 
 const flex = new FlexClient(cfg);
 const telemetry = new AcomTelemetry(cfg);
-const tuner = new TuneController(cfg, flex, () => telemetry.snapshot(), __dirname);
+const tuner = new TuneController(cfg, flex, () => telemetry.snapshot(), paths.HOME);
 const catEmu = new CatEmulator(cfg, flex, tuner);
 const discovery = new FlexDiscovery();
 

@@ -1,22 +1,106 @@
 {
   "name": "acom-flex-bridge",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Station dashboard and translator bridging an ACOM S-series amp + 04AT/06AT autotuner to a FlexRadio via the native SmartSDR TCP API. Works alongside SmartSDR, AetherSDR, or Maestro - on Windows, macOS, Linux, or a Raspberry Pi.",
-  "main": "bridge.js",
+  "author": "accius",
+  "main": "desktop/main.js",
   "type": "commonjs",
   "scripts": {
     "start": "node bridge.js",
     "dev": "node --watch bridge.js",
     "check": "node -e \"const {execFileSync}=require('child_process');const fs=require('fs');const files=['bridge.js','diag.js',...fs.readdirSync('lib').filter(f=>f.endsWith('.js')).map(f=>'lib/'+f)];for(const f of files)execFileSync(process.execPath,['--check',f],{stdio:'inherit'});console.log('syntax ok ('+files.length+' files)')\"",
     "diag": "node diag.js",
-    "ports": "node -e \"require('serialport').SerialPort.list().then(p => console.table(p.map(x => ({path: x.path, manufacturer: x.manufacturer, serial: x.serialNumber}))))\""
+    "ports": "node -e \"require('serialport').SerialPort.list().then(p => console.table(p.map(x => ({path: x.path, manufacturer: x.manufacturer, serial: x.serialNumber}))))\"",
+    "app": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "dependencies": {
     "serialport": "^12.0.0",
     "ws": "^8.18.0"
   },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "build": {
+    "appId": "net.acomflexbridge.app",
+    "productName": "ACOM Flex Bridge",
+    "copyright": "MIT License",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "bridge.js",
+      "diag.js",
+      "lib/**",
+      "web/**",
+      "desktop/**",
+      "config.json",
+      "package.json",
+      "build/icon.png",
+      "!**/*.map"
+    ],
+    "asarUnpack": [
+      "node_modules/@serialport/**",
+      "node_modules/serialport/**"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "ACOM Flex Bridge"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities",
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "sign": false
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "build/icon.png",
+      "category": "HamRadio"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "accius",
+      "repo": "flexcom",
+      "releaseType": "release"
+    }
+  }
 }

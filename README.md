@@ -45,7 +45,21 @@ Because the radio never changes mode and is never keyed through CAT semantics, t
 - 🖱 **No command line** — double-click installers on Windows, two shell scripts everywhere else; all configuration (auto-discovered radio IP, serial-port pick-lists, tune power, amp model, notifications) lives in the dashboard's Settings panel
 - 🧾 **Deep logging** — every byte in both directions, timestamped, for protocol refinement
 
-## Quick start
+## Install (desktop app)
+
+Download the installer for your machine from the **[Releases](https://github.com/accius/flexcom/releases)** page, wire the station per **[HOOKUP.md](HOOKUP.md)**, and run it:
+
+| Platform | File | Notes |
+|---|---|---|
+| Windows 10/11 | `ACOM Flex Bridge-<version>-win-x64.exe` | SmartScreen will say "Windows protected your PC" because the installer is not code-signed: click **More info → Run anyway**. |
+| macOS (Apple Silicon) | `ACOM Flex Bridge-<version>-mac-arm64.dmg` | Not notarized: on first launch **right-click the app → Open**, or run `xattr -dr com.apple.quarantine "/Applications/ACOM Flex Bridge.app"`. |
+| macOS (Intel) | `ACOM Flex Bridge-<version>-mac-x64.dmg` | Same as above. |
+
+The app runs the bridge in the background, shows the dashboard in its own window, and sits in the system tray / menu bar. Closing the window keeps the bridge running; **Quit** is in the tray menu, along with **Restart bridge**, **Start at login**, and shortcuts to the logs and settings folders. Config, logs, and tune memory live in the per-user app data folder (`%APPDATA%\acom-flex-bridge\bridge` on Windows, `~/Library/Application Support/acom-flex-bridge/bridge` on macOS), not in the install directory.
+
+No Node.js install is needed for the desktop app. The script-based install below is the alternative for Linux, Raspberry Pi, or anyone who prefers running from source.
+
+## Quick start (from source)
 
 Everything needs [Node.js LTS](https://nodejs.org) (≥ 18) and the wiring in **[HOOKUP.md](HOOKUP.md)**.
 
@@ -95,9 +109,21 @@ Everything lives in `config.json` (edited by the dashboard Settings panel, or by
 
 Serial port names are platform-native: `COM3` on Windows, `/dev/serial/by-id/...` on Linux (stable across reboots — prefer these), `/dev/tty.usbserial-...` on macOS. The Settings pick-list shows what's present.
 
+## Releasing (maintainers)
+
+Installers are built by GitHub Actions (`.github/workflows/release.yml`) on Windows and macOS runners. To cut a release:
+
+```sh
+npm version 0.7.1          # bumps package.json + package-lock.json, commits, tags v0.7.1
+git push && git push --tags
+```
+
+The tag push builds the Windows installer and both macOS DMGs and attaches them to a GitHub Release named after the tag. Running the workflow by hand from the Actions tab builds the same files as downloadable artifacts without publishing a release. Local builds: `npm run dist:win` / `npm run dist:mac` (on the matching OS), or `npm run app` to run the desktop shell unpackaged. Builds are unsigned; add certificates via electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD` secrets when available.
+
 ## Project structure
 
 ```
+desktop/main.js      desktop app shell (Electron): runs bridge.js as a child, window, tray, login item
 bridge.js            entry point / wiring / dashboard command table
 lib/flex.js          SmartSDR TCP API client, client binding, radio control, ATU guard
 lib/cat.js           Kenwood CAT emulator facing the amp
@@ -107,7 +133,9 @@ lib/bands.js         band plan helpers
 lib/discovery.js     FlexRadio UDP discovery listener
 lib/dashboard.js     HTTP + WebSocket server, command channel, config API
 lib/log.js           logger + event bus
+lib/paths.js         where config.json / logs/ / data/ live (repo folder, or ACOM_BRIDGE_HOME for the desktop app)
 web/                 dashboard SPA (vanilla JS, zero build step)
+build/icon.png       app icon source (rendered from web/icon.svg); electron-builder derives .ico/.icns
 ```
 
 ## ACOM remote protocol notes
@@ -153,7 +181,7 @@ Pick whichever fits your station — the bridge doesn't care:
 - [x] Cross-platform install/run/autostart (Windows, macOS, Linux, Pi)
 - [ ] Verify measurement-telegram values against the 700S front panel at power (field offsets are from ACOM-Controller; sanity-check fwd/refl/temp on your amp at low power first)
 - [ ] SWR-vs-frequency sweep during tune
-- [ ] System-tray app packaging
+- [x] Desktop app (Windows installer + macOS DMG via GitHub Actions, tray icon, no console)
 
 ## Acknowledgments
 
