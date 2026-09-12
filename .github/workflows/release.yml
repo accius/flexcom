@@ -1,12 +1,15 @@
 name: Release desktop app
 
-# Push a version tag to build installers and publish a GitHub Release:
-#   git tag v0.7.0 && git push origin v0.7.0
-# Or run it by hand from the Actions tab to get the installers as artifacts
-# without creating a release.
+# Three ways to build installers and publish a GitHub Release:
+#   1. push a version tag:            git tag v0.7.0 && git push origin v0.7.0
+#   2. push a release branch:         git push origin HEAD:release/v0.7.0
+#      (the workflow tags the commit as v<package.json version> itself)
+#   3. Actions tab -> Run workflow with "publish" ticked (same as 2).
+# A manual run without "publish" only uploads the installers as artifacts.
 on:
   push:
     tags: ['v*']
+    branches: ['release/**']
   workflow_dispatch:
     inputs:
       publish:
@@ -18,10 +21,10 @@ permissions:
   contents: write
 
 jobs:
-  # Manual run with publish=true: create the version tag from this branch
-  # first, so the build jobs behave exactly like a tag push.
+  # Release branch or manual run with publish=true: create the version tag
+  # on this commit first, so the build jobs behave exactly like a tag push.
   tag:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    if: (github.event_name == 'workflow_dispatch' && inputs.publish) || startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
