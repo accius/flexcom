@@ -32,7 +32,7 @@ Because the radio never changes mode and is never keyed through CAT semantics, t
 
 ## Features
 
-- 🎛 **One-button tuning** — press TUNE on the amp *or* the dashboard's TUNE button; carrier on, power tracked, carrier off, done
+- 🎛 **One-button tuning** — press TUNE on the amp; carrier on, power tracked, carrier off, done. The dashboard's TUNE button is a low-power carrier test (the amp is switched to STANDBY first); the 04AT/06AT matching cycle itself is started from the amp
 - 🗺 **Per-band tune memory** — every successful tune is remembered per band (frequency, SWR, age); band buttons QSY straight back to the last-tuned spot; memories survive restarts
 - 📻 **Radio control** — big click-to-QSY frequency readout, band buttons, mode buttons, RF-power and tune-power sliders, internal-ATU state — all live from the radio, working alongside whatever SDR client is running (or none)
 - 📊 **Amp control & telemetry** — OPERATE / STANDBY / power-OFF buttons, PA state banner, live gauges (forward/reflected power, SWR, PA temp, drive power, DC input power), band + fan readout, decoded protection errors
@@ -157,7 +157,8 @@ Pick whichever fits your station — the bridge doesn't care:
 ## Troubleshooting
 
 - **Radio not auto-discovered** — SmartSDR on the same PC may hold UDP 4992; enter the IP manually (SmartSDR's radio chooser shows it).
-- **Amp doesn't follow frequency** — check CAT protocol = Kenwood, interface = RS232, baud matches config; verify TX/RX aren't swapped on the CAT cable.
+- **Amp doesn't follow frequency / "CAT error" on the amp** — CAT/AUX SETTINGS must be interface RS232, **command set 2** (Kenwood), baud matching config. A factory reset puts the amp back on command set 1 (Icom CI-V); the bridge then logs "Amp is sending Icom CI-V frames". Older firmware lists transceiver names instead of numbers: pick KENWOOD. Also verify TX/RX aren't swapped on the CAT cable.
+- **"Excessive PAM current" / "Hot switching" / "RF power at wrong time" right after a dashboard TUNE** — the amp was in OPERATE and the tuner was not matched for that band, so the carrier came out at full power into a mismatch. Since v0.7.1 the bridge forces STANDBY before a dashboard carrier; match the tuner with the amp's own TUNE button.
 - **Events show "Receiving garbage instead of CAT commands"** — the amp and bridge disagree on baud rate (or the cable is a TTL-level adapter, not RS-232). Set the amp's CAT menu to KENWOOD / RS232 and match the baud in dashboard Settings (both have baud dropdowns now). The log prints a raw hex sample to confirm. While the CAT link is garbled, the **amp itself raises `CAT error` telemetry codes** (0x70–0x73, and neighbors like 0x86) — fix the link and the error spam stops.
 - **"Internal ATU engaged (status=TUNE_SUCCESSFUL)" repeatedly** — the radio is re-applying an internal-ATU memory on every QSY, and the bridge keeps bypassing it. Turn ATU memories off in SmartSDR (ATU panel → MEM) and clear stored memories; the internal ATU must stay in bypass with the amp + external tuner in line.
 - **"Garbled command … salvaged" around transmissions** — RF is getting into the CAT serial cable. The bridge recovers these automatically, but clamp-on ferrites at both ends of both serial cables (and keeping them away from the coax run) is the real fix.

@@ -36,6 +36,8 @@ const discovery = new FlexDiscovery();
 telemetry.onSwr = (swr) => tuner.observeSwr(swr);
 // Never move the client binding while a carrier is up.
 flex.isTuning = () => tuner.tuning;
+// Dashboard carriers force the amp to STANDBY first (see tune.js).
+tuner.amp = telemetry;
 
 // Dashboard-initiated actions (arrive over the WebSocket).
 const clampW = (w, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(w) || 0)));

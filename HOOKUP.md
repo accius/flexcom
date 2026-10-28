@@ -67,12 +67,14 @@ Do this in order, with **everything powered off and mains disconnected from the 
    - Confirm the internal **ATU shows BYPASS** (the bridge will enforce this, but verify once yourself).
 3. **PC next.** Start the bridge (`Start Bridge.bat` on Windows, `./start.sh` on macOS/Linux); in dashboard ⚙ Settings select the radio, both serial ports, and the amp model, then Save, Restart. Confirm the dashboard shows the radio connected, a bound client, and ATU BYPASS.
 4. **Amp last**, in **STANDBY**:
-   - Amp menu → CAT: protocol **Kenwood**, interface **RS232**, baud **9600** (matching config).
+   - Amp menu → CAT/AUX SETTINGS: interface **RS232**, **command set 2** (Kenwood; set 1 is the Icom CI-V factory default and the bridge will report "Amp is sending Icom CI-V frames"), baud **9600** (matching config), polling 300 ms, byte spacing 0. Older firmware shows transceiver names instead of numbered command sets: pick the KENWOOD TS-2000/480/590/890/990 entry.
    - The tuner powers up with the amp (watch for the ATU/antenna info on the amp's screen — that confirms the coax-carried control link to the 06AT is alive).
    - Amp ATU menu: assign antennas 1–4 to bands.
 5. **Verify CAT link:** QSY in the SDR client; the amp display must follow band and frequency. If not, stop and fix this before any RF.
-6. **First tune, amp in STANDBY:** press TUNE on the amp. The bridge should raise a carrier at tune power (~25 W), the 06AT should cycle, and the carrier should drop. Check the dashboard tune history and the debug log.
-7. Only when standby tuning is clean: switch to **OPERATE**, tune again, then make a low-power test transmission and watch forward power/SWR on the dashboard.
+6. **First tune, amp in STANDBY:** press **TUNE on the amp**. The amp sequences its own PA and sends TX;/RX; over CAT; the bridge raises a carrier at tune power (~25 W), the 06AT cycles, and the carrier drops. Check the dashboard tune history and the debug log.
+7. Only when standby tuning is clean: switch to **OPERATE**, press TUNE on the amp again, then make a low-power test transmission and watch forward power/SWR on the dashboard.
+
+**The dashboard's TUNE button is not the amp's TUNE button.** It only asks the radio for a carrier at tune power so you can check SWR and the amp gauges; it does not start the 04AT/06AT matching cycle, which only the amp can initiate. Because a carrier into an OPERATE amp means full output into whatever the tuner is set for, the bridge switches the amp to STANDBY before raising a dashboard carrier and refuses if the amp does not confirm. Match the tuner with the amp's TUNE button; use the dashboard button for low-power checks.
 
 **Power-down** is the reverse: amp to standby and off first, then everything else in any order.
 
